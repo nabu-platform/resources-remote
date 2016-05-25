@@ -93,7 +93,9 @@ public class ResourceREST {
 		}
 		WritableContainer<ByteBuffer> writable = ((WritableResource) resolved).getWritable();
 		try {
-			IOUtils.copyBytes(IOUtils.wrap(content), writable);
+			if (content != null) {
+				IOUtils.copyBytes(IOUtils.wrap(content), writable);
+			}
 		}
 		finally {
 			writable.close();
