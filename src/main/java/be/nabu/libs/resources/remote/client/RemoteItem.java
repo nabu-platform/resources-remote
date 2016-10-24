@@ -54,7 +54,7 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 						new MimeHeader("Content-Length", Long.toString(content.length)),
 						getHostHeader()
 					)), getPrincipal(), isSecure(), false);
-					if (response.getCode() != 200) {
+					if (response.getCode() < 200 || response.getCode() >= 300) {
 						throw new IOException("Could not persist data: " + response.getCode() + " - " + response.getMessage());
 					}
 					else {
@@ -89,7 +89,7 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 					new MimeHeader("Accept-Encoding", "gzip"),
 					getHostHeader()
 				)), getPrincipal(), isSecure(), false);
-				if (response.getCode() != 200 || !(response.getContent() instanceof ContentPart)) {
+				if (response.getCode() < 200 || response.getCode() >= 300 || !(response.getContent() instanceof ContentPart)) {
 					throw new IOException("Could not get content: " + response.getCode() + " - " + response.getMessage());
 				}
 				content = IOUtils.toBytes(((ContentPart) response.getContent()).getReadable());
