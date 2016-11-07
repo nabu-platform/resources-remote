@@ -51,7 +51,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 							getHostHeader()
 						)), getPrincipal(), isSecure(), false);
 						
-						if (response.getCode() == 200 && response.getContent() instanceof ContentPart) {
+						if (response.getCode() >= 200 && response.getCode() < 300 && response.getContent() instanceof ContentPart) {
 							Listing listing = TypeUtils.getAsBean(getBinding().unmarshal(IOUtils.toInputStream(((ContentPart) response.getContent()).getReadable()), new Window[0]), Listing.class);
 							loadListing(listing);
 						}
@@ -118,7 +118,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 				new MimeHeader("Content-Length", "0"),
 				getHostHeader()
 			)), getPrincipal(), isSecure(), false);
-			if (response.getCode() != 200) {
+			if (response.getCode() < 200 || response.getCode() >= 300) {
 				throw new RuntimeException("Invalid response code " + response.getCode() + ": " + response.getMessage());
 			}
 			// the actual backend resource will be created upon use, so just send back a resource instance
@@ -143,7 +143,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 					new MimeHeader("Content-Length", "0"),
 					getHostHeader()
 				)), getPrincipal(), isSecure(), false);
-				if (response.getCode() != 200) {
+				if (response.getCode() < 200 || response.getCode() >= 300) {
 					throw new IOException("Could not delete: " + name);
 				}
 				getChildren().remove(name);
