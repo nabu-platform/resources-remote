@@ -114,7 +114,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 			if ("/".equals(encodeURI)) {
 				encodeURI = "";
 			}
-			HTTPResponse response = getClient().execute(new DefaultHTTPRequest("POST", getRoot() + "resource" + encodeURI + "?type=" + URIUtils.encodeURIComponent(contentType) + "&name=" + URIUtils.encodeURIComponent(name), new PlainMimeEmptyPart(null, 
+			HTTPResponse response = getClient().execute(new DefaultHTTPRequest("POST", getRoot() + "resource" + encodeURI + "?type=" + contentType + "&name=" + URIUtils.encodeURIComponent(name), new PlainMimeEmptyPart(null, 
 				new MimeHeader("Content-Length", "0"),
 				getHostHeader()
 			)), getPrincipal(), isSecure(), false);

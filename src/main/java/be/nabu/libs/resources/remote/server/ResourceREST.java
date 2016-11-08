@@ -152,7 +152,7 @@ public class ResourceREST {
 		}
 		// a directory, we need to provide a listing
 		else if (!(resolved instanceof ResourceContainer)) {
-			throw new HTTPException(400, "The requested resource is not listable");
+			throw new HTTPException(400, "The requested resource is not listable: " + path);
 		}
 		Listing listing = new Listing();
 		listing.setPath(path);
