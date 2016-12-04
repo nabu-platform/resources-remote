@@ -2,12 +2,15 @@ package be.nabu.libs.resources.remote.client;
 
 import java.io.IOException;
 import java.net.URI;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import be.nabu.libs.http.client.connections.PooledConnectionHandler;
+import javax.net.ssl.SSLContext;
+
+import be.nabu.libs.http.client.connections.PlainConnectionHandler;
 import be.nabu.libs.resources.api.Resource;
 import be.nabu.libs.resources.api.ResourceResolver;
 import be.nabu.libs.resources.api.principals.BasicPrincipal;
@@ -30,7 +33,12 @@ public class RemoteResourceResolver implements ResourceResolver {
 			password = ((BasicPrincipal) principal).getPassword();
 		}
 		boolean recursive = Boolean.parseBoolean(System.getProperty("resources.remote.recursive", "true"));
-		return new RemoteContainer(new PooledConnectionHandler(null, 5), uri.getHost(), uri.getPort(), uri.getPath(), username, password, null, Resource.CONTENT_TYPE_DIRECTORY, new Date(), "/", recursive);
+		try {
+			return new RemoteContainer(new PlainConnectionHandler(uri.getScheme().equals("https") ? SSLContext.getDefault() : null, 10*1000*60, 10*1000*60), uri.getHost(), uri.getPort(), uri.getPath(), username, password, null, Resource.CONTENT_TYPE_DIRECTORY, new Date(), "/", recursive);
+		}
+		catch (NoSuchAlgorithmException e) {
+			throw new IOException(e);
+		}
 	}
 
 	@Override
