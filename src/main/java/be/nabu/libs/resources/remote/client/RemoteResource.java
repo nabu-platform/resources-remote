@@ -10,11 +10,13 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.util.Date;
 
+import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.client.ConnectionHandler;
 import be.nabu.libs.http.api.client.HTTPClient;
 import be.nabu.libs.http.client.DefaultHTTPClient;
 import be.nabu.libs.http.client.SPIAuthenticationHandler;
 import be.nabu.libs.http.core.CustomCookieStore;
+import be.nabu.libs.http.core.DefaultHTTPRequest;
 import be.nabu.libs.resources.URIUtils;
 import be.nabu.libs.resources.api.LocatableResource;
 import be.nabu.libs.resources.api.ResourceContainer;
@@ -25,8 +27,11 @@ import be.nabu.libs.types.api.ComplexType;
 import be.nabu.libs.types.binding.api.UnmarshallableBinding;
 import be.nabu.libs.types.binding.xml.XMLBinding;
 import be.nabu.libs.types.java.BeanResolver;
+import be.nabu.utils.io.IOUtils;
+import be.nabu.utils.mime.api.ContentPart;
 import be.nabu.utils.mime.api.Header;
 import be.nabu.utils.mime.impl.MimeHeader;
+import be.nabu.utils.mime.impl.PlainMimeEmptyPart;
 
 public class RemoteResource implements TimestampedResource, Closeable, LocatableResource {
 	
@@ -193,5 +198,23 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 	@Override
 	public String toString() {
 		return getURI().toString();
+	}
+	
+	public boolean exists() {
+		try {
+			HTTPResponse response = getClient().execute(new DefaultHTTPRequest("GET", getRoot() + "exists" + (getPath() == "/" ? "" : URIUtils.encodeURI(getPath())), new PlainMimeEmptyPart(null, 
+				new MimeHeader("Content-Length", "0"),
+				new MimeHeader("Accept-Encoding", "gzip"),
+				getHostHeader()
+			)), getPrincipal(), isSecure(), false);
+			if (response.getCode() >= 200 && response.getCode() < 300 && response.getContent() instanceof ContentPart) {
+				byte[] bytes = IOUtils.toBytes(((ContentPart) response.getContent()).getReadable());
+				return new String(bytes).equals("true");
+			}
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		return false;
 	}
 }

@@ -39,6 +39,18 @@ public class ResourceREST {
 	@Context
 	private ResourceContainer<?> root;
 	
+	@Path("/exists")
+	@GET
+	public boolean existsRoot() throws IOException {
+		return root != null;
+	}
+	
+	@Path("/exists/{path : .+}")
+	@GET
+	public boolean exists(@PathParam("path") String path) throws IOException {
+		return ResourceUtils.resolve(root, path) != null;
+	}
+	
 	@Path("/resource/{path : .+}")
 	@GET
 	public Part read(@PathParam("path") String path) throws IOException {

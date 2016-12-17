@@ -39,7 +39,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 		super(handler, host, port, root, username, password, itemName, contentType, lastModified, path);
 		this.recursiveList = recursiveList;
 	}
-
+	
 	private Map<String, RemoteResource> getChildren() {
 		if (children == null) {
 			synchronized(this) {

@@ -34,7 +34,8 @@ public class RemoteResourceResolver implements ResourceResolver {
 		}
 		boolean recursive = Boolean.parseBoolean(System.getProperty("resources.remote.recursive", "true"));
 		try {
-			return new RemoteContainer(new PlainConnectionHandler(uri.getScheme().equals("https") ? SSLContext.getDefault() : null, 10*1000*60, 10*1000*60), uri.getHost(), uri.getPort(), uri.getPath(), username, password, null, Resource.CONTENT_TYPE_DIRECTORY, new Date(), "/", recursive);
+			RemoteContainer remoteContainer = new RemoteContainer(new PlainConnectionHandler(uri.getScheme().equals("https") ? SSLContext.getDefault() : null, 10*1000*60, 10*1000*60), uri.getHost(), uri.getPort(), uri.getPath(), username, password, null, Resource.CONTENT_TYPE_DIRECTORY, new Date(), "/", recursive);
+			return remoteContainer.exists() ? remoteContainer : null;
 		}
 		catch (NoSuchAlgorithmException e) {
 			throw new IOException(e);
