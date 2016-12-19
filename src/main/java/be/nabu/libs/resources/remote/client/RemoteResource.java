@@ -209,7 +209,7 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 			)), getPrincipal(), isSecure(), false);
 			if (response.getCode() >= 200 && response.getCode() < 300 && response.getContent() instanceof ContentPart) {
 				byte[] bytes = IOUtils.toBytes(((ContentPart) response.getContent()).getReadable());
-				return new String(bytes).equals("true");
+				return !new String(bytes).equals("false");
 			}
 		}
 		catch (Exception e) {
