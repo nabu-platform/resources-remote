@@ -48,6 +48,7 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 	private ConnectionHandler connectionHandler;
 	private String root;
 	private UnmarshallableBinding binding;
+	private boolean isSecure;
 
 	RemoteResource(RemoteContainer parent, String itemName, String contentType, Date lastModified, String path) {
 		this.parent = parent;
@@ -72,6 +73,27 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 		if (port == null) {
 			port = connectionHandler.getSecureContext() == null ? 80 : 443;
 		}
+		this.username = username;
+		this.password = password;
+		this.itemName = itemName;
+		this.contentType = contentType;
+		this.lastModified = lastModified;
+		this.path = path;
+		if (!this.path.startsWith("/")) {
+			this.path = "/" + this.path;
+		}
+		this.isSecure = connectionHandler.getSecureContext() != null;
+	}
+	
+	public RemoteResource(HTTPClient client, String host, Integer port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean isSecure) {
+		this.isSecure = isSecure;
+		this.root = root == null ? "/" : root;
+		if (!this.root.endsWith("/")) {
+			this.root += "/";
+		}
+		this.client = client;
+		this.host = host;
+		this.port = port == null ? 80 : port;
 		this.username = username;
 		this.password = password;
 		this.itemName = itemName;
@@ -117,7 +139,7 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 	}
 	
 	protected boolean isSecure() {
-		return getConnectionHandler().getSecureContext() != null;
+		return parent == null ? isSecure : parent.isSecure();
 	}
 	
 	protected Header getHostHeader() {
@@ -176,7 +198,12 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 	@Override
 	public void close() throws IOException {
 		if (parent == null) {
-			connectionHandler.close();
+			if (connectionHandler != null) {
+				connectionHandler.close();
+			}
+			else if (client instanceof Closeable) {
+				((Closeable) client).close();
+			}
 		}
 	}
 

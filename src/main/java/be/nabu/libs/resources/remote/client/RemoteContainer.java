@@ -9,6 +9,7 @@ import java.util.Map;
 
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.client.ConnectionHandler;
+import be.nabu.libs.http.api.client.HTTPClient;
 import be.nabu.libs.http.core.DefaultHTTPRequest;
 import be.nabu.libs.resources.URIUtils;
 import be.nabu.libs.resources.api.ManageableContainer;
@@ -37,6 +38,11 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 
 	public RemoteContainer(ConnectionHandler handler, String host, int port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean recursiveList) {
 		super(handler, host, port, root, username, password, itemName, contentType, lastModified, path);
+		this.recursiveList = recursiveList;
+	}
+	
+	public RemoteContainer(HTTPClient client, String host, int port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean isSecure, boolean recursiveList) {
+		super(client, host, port, root, username, password, itemName, contentType, lastModified, path, isSecure);
 		this.recursiveList = recursiveList;
 	}
 	

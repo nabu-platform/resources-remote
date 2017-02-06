@@ -1,16 +1,23 @@
 package be.nabu.libs.resources.remote.client;
 
 import java.io.IOException;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLContext;
 
+import be.nabu.libs.events.impl.EventDispatcherImpl;
 import be.nabu.libs.http.client.connections.PlainConnectionHandler;
+import be.nabu.libs.http.client.nio.NIOHTTPClientImpl;
+import be.nabu.libs.http.core.CustomCookieStore;
+import be.nabu.libs.http.server.nio.MemoryMessageDataProvider;
 import be.nabu.libs.resources.api.Resource;
 import be.nabu.libs.resources.api.ResourceResolver;
 import be.nabu.libs.resources.api.principals.BasicPrincipal;
@@ -34,7 +41,16 @@ public class RemoteResourceResolver implements ResourceResolver {
 		}
 		boolean recursive = Boolean.parseBoolean(System.getProperty("resources.remote.recursive", "true"));
 		try {
-			RemoteContainer remoteContainer = new RemoteContainer(new PlainConnectionHandler(uri.getScheme().equals("https") ? SSLContext.getDefault() : null, 10*1000*60, 10*1000*60), uri.getHost(), uri.getPort(), uri.getPath(), username, password, null, Resource.CONTENT_TYPE_DIRECTORY, new Date(), "/", recursive);
+			RemoteContainer remoteContainer;
+			if (Boolean.parseBoolean(System.getProperty("http.experimental.client", "false"))) {
+				remoteContainer = new RemoteContainer(
+					new NIOHTTPClientImpl(uri.getScheme().equals("https") ? SSLContext.getDefault() : null, 5, 3, 10, new EventDispatcherImpl(), new MemoryMessageDataProvider(), new CookieManager(new CustomCookieStore(), CookiePolicy.ACCEPT_NONE), Executors.defaultThreadFactory()),
+					uri.getHost(), uri.getPort(), uri.getPath(), username, password, null, Resource.CONTENT_TYPE_DIRECTORY, new Date(), "/", uri.getScheme().equals("https"), recursive
+				);
+			}
+			else {
+				remoteContainer = new RemoteContainer(new PlainConnectionHandler(uri.getScheme().equals("https") ? SSLContext.getDefault() : null, 10*1000*60, 10*1000*60), uri.getHost(), uri.getPort(), uri.getPath(), username, password, null, Resource.CONTENT_TYPE_DIRECTORY, new Date(), "/", recursive);
+			}
 			return remoteContainer.exists() ? remoteContainer : null;
 		}
 		catch (NoSuchAlgorithmException e) {
