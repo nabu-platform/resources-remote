@@ -6,13 +6,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 @XmlRootElement(name = "entry")
-@XmlType(propOrder = { "name", "contentType", "size", "lastModified", "path", "children" })
+@XmlType(propOrder = { "name", "contentType", "size", "lastModified", "path", "children", "content" })
 public class Entry {
 	private String name, path;
 	private String contentType;
 	private Long size;
 	private Date lastModified;
 	private Listing children;
+	private byte [] content;
 
 	public String getName() {
 		return name;
@@ -49,5 +50,11 @@ public class Entry {
 	}
 	public void setChildren(Listing children) {
 		this.children = children;
+	}
+	public byte[] getContent() {
+		return content;
+	}
+	public void setContent(byte[] content) {
+		this.content = content;
 	}
 }

@@ -145,13 +145,21 @@ public class ResourceREST {
 
 	@Path("/list")
 	@GET
-	public Listing listRoot(@QueryParam("recursive") String recursive) throws IOException {
-		return list("/", recursive);
+	public Listing listRoot(@QueryParam("recursive") String recursive, @QueryParam("full") String full) throws IOException {
+		return list("/", recursive, full);
 	}
+
+	@Path("/list/")
+	@GET
+	public Listing listRoot2(@QueryParam("recursive") String recursive, @QueryParam("full") String full) throws IOException {
+		return list("/", recursive, full);
+	}
+	
+	private Long maxPreloadSize = 1024l*1024;
 	
 	@Path("/list/{path : .*}")
 	@GET
-	public Listing list(@PathParam("path") String path, @QueryParam("recursive") String recursive) throws IOException {
+	public Listing list(@PathParam("path") String path, @QueryParam("recursive") String recursive, @QueryParam("full") String full) throws IOException {
 		if (path != null && path.startsWith("/")) {
 			path = path.substring(1);
 		}
@@ -182,8 +190,17 @@ public class ResourceREST {
 			if (child instanceof TimestampedResource) {
 				entry.setLastModified(((TimestampedResource) child).getLastModified());
 			}
+			if ("true".equals(full) && child instanceof ReadableResource && entry.getSize() != null && entry.getSize() < maxPreloadSize) {
+				ReadableContainer<ByteBuffer> readable = ((ReadableResource) child).getReadable();
+				try {
+					entry.setContent(IOUtils.toBytes(readable));
+				}
+				finally {
+					readable.close();
+				}
+			}
 			if ("true".equals(recursive) && child instanceof ResourceContainer) {
-				entry.setChildren(list(entry.getPath(), recursive));
+				entry.setChildren(list(entry.getPath(), recursive, full));
 			}
 			listing.getEntries().add(entry);
 		}

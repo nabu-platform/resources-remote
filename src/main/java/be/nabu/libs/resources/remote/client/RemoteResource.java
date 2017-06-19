@@ -208,9 +208,9 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 	}
 
 	@Override
-	public URI getURI() {
+	public URI getUri() {
 		if (parent != null) {
-			return URIUtils.getChild(parent.getURI(), getName());
+			return URIUtils.getChild(parent.getUri(), getName());
 		}
 		else {
 			try {
@@ -224,7 +224,7 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 	
 	@Override
 	public String toString() {
-		return getURI().toString();
+		return getUri().toString();
 	}
 	
 	public boolean exists() {

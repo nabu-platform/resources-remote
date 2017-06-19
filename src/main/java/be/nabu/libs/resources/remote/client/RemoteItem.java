@@ -29,9 +29,10 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 		super(connectionHandler, host, port, root, username, password, itemName, contentType, lastModified, path);
 	}
 	
-	RemoteItem(RemoteContainer parent, String itemName, String contentType, Date lastModified, String path, Long size) {
+	RemoteItem(RemoteContainer parent, String itemName, String contentType, Date lastModified, String path, Long size, byte [] content) {
 		super(parent, itemName, contentType, lastModified, path);
 		this.size = size;
+		this.content = content;
 	}
 
 	@Override

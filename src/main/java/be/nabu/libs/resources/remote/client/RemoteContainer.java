@@ -29,21 +29,23 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 
 	private boolean cache;
 	private Map<String, RemoteResource> children;
-	private boolean recursiveList;
+	private boolean recursiveList, fullList;
 
 	RemoteContainer(RemoteContainer parent, String itemName, String contentType, Date lastModified, String path, boolean recursiveList) {
 		super(parent, itemName, contentType, lastModified, path);
 		this.recursiveList = recursiveList;
 	}
 
-	public RemoteContainer(ConnectionHandler handler, String host, int port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean recursiveList) {
+	public RemoteContainer(ConnectionHandler handler, String host, int port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean recursiveList, boolean fullList) {
 		super(handler, host, port, root, username, password, itemName, contentType, lastModified, path);
 		this.recursiveList = recursiveList;
+		this.fullList = fullList;
 	}
 	
-	public RemoteContainer(HTTPClient client, String host, int port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean isSecure, boolean recursiveList) {
+	public RemoteContainer(HTTPClient client, String host, int port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean isSecure, boolean recursiveList, boolean fullList) {
 		super(client, host, port, root, username, password, itemName, contentType, lastModified, path, isSecure);
 		this.recursiveList = recursiveList;
+		this.fullList = fullList;
 	}
 	
 	private Map<String, RemoteResource> getChildren() {
@@ -51,7 +53,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 			synchronized(this) {
 				if (children == null) {
 					try {
-						HTTPResponse response = getClient().execute(new DefaultHTTPRequest("GET", getRoot() + "list" + URIUtils.encodeURI(getPath()) + "?recursive=" + recursiveList, new PlainMimeEmptyPart(null, 
+						HTTPResponse response = getClient().execute(new DefaultHTTPRequest("GET", getRoot() + "list" + URIUtils.encodeURI(getPath()) + "?recursive=" + recursiveList + "&full=" + fullList, new PlainMimeEmptyPart(null, 
 							new MimeHeader("Content-Length", "0"),
 							new MimeHeader("Accept-Encoding", "gzip"),
 							getHostHeader()
@@ -80,7 +82,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 		return children;
 	}
 
-	private synchronized void loadListing(Listing listing) {
+	private void loadListing(Listing listing) {
 		Map<String, RemoteResource> children = new HashMap<String, RemoteResource>();
 		if (listing != null && listing.getEntries() != null) {
 			for (Entry entry : listing.getEntries()) {
@@ -92,7 +94,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 					}
 				}
 				else {
-					children.put(entry.getName(), new RemoteItem(this, entry.getName(), entry.getContentType(), entry.getLastModified(), entry.getPath(), entry.getSize()));
+					children.put(entry.getName(), new RemoteItem(this, entry.getName(), entry.getContentType(), entry.getLastModified(), entry.getPath(), entry.getSize(), entry.getContent()));
 				}
 			}
 		}
@@ -132,7 +134,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 				getChildren().put(name, new RemoteContainer(this, name, contentType, new Date(), childPath, recursiveList));
 			}
 			else {
-				getChildren().put(name, new RemoteItem(this, name, contentType, new Date(), childPath, 0l));
+				getChildren().put(name, new RemoteItem(this, name, contentType, new Date(), childPath, 0l, new byte[0]));
 			}
 			return getChildren().get(name);
 		}
@@ -185,4 +187,13 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 	public void setRecursiveList(boolean recursiveList) {
 		this.recursiveList = recursiveList;
 	}
+
+	public boolean isFullList() {
+		return fullList;
+	}
+
+	public void setFullList(boolean fullList) {
+		this.fullList = fullList;
+	}
+	
 }
