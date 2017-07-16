@@ -1,5 +1,6 @@
 package be.nabu.libs.resources.remote.client;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Date;
@@ -52,29 +53,26 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 		if (children == null) {
 			synchronized(this) {
 				if (children == null) {
+					HTTPResponse response = null;
 					try {
-						HTTPResponse response = getClient().execute(new DefaultHTTPRequest("GET", getRoot() + "list" + URIUtils.encodeURI(getPath()) + "?recursive=" + recursiveList + "&full=" + fullList, new PlainMimeEmptyPart(null, 
+						response = getClient().execute(new DefaultHTTPRequest("GET", getRoot() + "list" + URIUtils.encodeURI(getPath()) + "?recursive=" + recursiveList + "&full=" + fullList, new PlainMimeEmptyPart(null, 
 							new MimeHeader("Content-Length", "0"),
 							new MimeHeader("Accept-Encoding", "gzip"),
 							getHostHeader()
 						)), getPrincipal(), isSecure(), false);
 						
 						if (response.getCode() >= 200 && response.getCode() < 300 && response.getContent() instanceof ContentPart) {
-							Listing listing = TypeUtils.getAsBean(getBinding().unmarshal(IOUtils.toInputStream(((ContentPart) response.getContent()).getReadable()), new Window[0]), Listing.class);
+							
+							byte [] content = IOUtils.toBytes(((ContentPart) response.getContent()).getReadable());
+							Listing listing = TypeUtils.getAsBean(getBinding().unmarshal(new ByteArrayInputStream(content), new Window[0]), Listing.class);
 							loadListing(listing);
 						}
 						else {
 							throw new RuntimeException("Invalid response code " + response.getCode() + ": " + response.getMessage());
 						}
 					}
-					catch (IOException e) {
-						throw new RuntimeException(e);
-					}
-					catch (FormatException e) {
-						throw new RuntimeException(e);
-					}
-					catch (ParseException e) {
-						throw new RuntimeException(e);
+					catch (Exception e) {
+						throw new RuntimeException("Can not read: " + getRoot() + "list" + URIUtils.encodeURI(getPath()) + "?recursive=" + recursiveList + "&full=" + fullList, e);
 					}
 				}
 			}
