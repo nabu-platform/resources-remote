@@ -2,6 +2,7 @@ package be.nabu.libs.resources.remote.client;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.Principal;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
@@ -37,14 +38,14 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 		this.recursiveList = recursiveList;
 	}
 
-	public RemoteContainer(ConnectionHandler handler, String host, int port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean recursiveList, boolean fullList) {
-		super(handler, host, port, root, username, password, itemName, contentType, lastModified, path);
+	public RemoteContainer(ConnectionHandler handler, String host, int port, String root, Principal principal, String itemName, String contentType, Date lastModified, String path, boolean recursiveList, boolean fullList) {
+		super(handler, host, port, root, principal, itemName, contentType, lastModified, path);
 		this.recursiveList = recursiveList;
 		this.fullList = fullList;
 	}
 	
-	public RemoteContainer(HTTPClient client, String host, int port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean isSecure, boolean recursiveList, boolean fullList) {
-		super(client, host, port, root, username, password, itemName, contentType, lastModified, path, isSecure);
+	public RemoteContainer(HTTPClient client, String host, int port, String root, Principal principal, String itemName, String contentType, Date lastModified, String path, boolean isSecure, boolean recursiveList, boolean fullList) {
+		super(client, host, port, root, principal, itemName, contentType, lastModified, path, isSecure);
 		this.recursiveList = recursiveList;
 		this.fullList = fullList;
 	}
@@ -165,7 +166,10 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 
 	@Override
 	public void resetCache() throws IOException {
-		children = null;
+		// only reset the children if we are not using the executor
+		if (getExecutor() == null) {
+			children = null;
+		}
 	}
 
 	@Override

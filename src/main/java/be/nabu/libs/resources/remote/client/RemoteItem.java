@@ -1,6 +1,7 @@
 package be.nabu.libs.resources.remote.client;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.Date;
 
 import be.nabu.libs.http.api.HTTPResponse;
@@ -25,8 +26,8 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 	private Long size;
 	private byte[] content;
 
-	public RemoteItem(ConnectionHandler connectionHandler, String host, Integer port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path) {
-		super(connectionHandler, host, port, root, username, password, itemName, contentType, lastModified, path);
+	public RemoteItem(ConnectionHandler connectionHandler, String host, Integer port, String root, Principal principal, String itemName, String contentType, Date lastModified, String path) {
+		super(connectionHandler, host, port, root, principal, itemName, contentType, lastModified, path);
 	}
 	
 	RemoteItem(RemoteContainer parent, String itemName, String contentType, Date lastModified, String path, Long size, byte [] content) {
@@ -48,19 +49,39 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 			public void close() throws IOException {
 				buffer.close();
 				try {
-					byte [] content = IOUtils.toBytes(buffer);
-					HTTPResponse response = getClient().execute(new DefaultHTTPRequest("PUT", getRoot() + "resource" + URIUtils.encodeURI(getPath()), new PlainMimeContentPart(null, 
-						IOUtils.wrap(content, true),
-						new MimeHeader("Content-Type", getContentType()),
-						new MimeHeader("Content-Length", Long.toString(content.length)),
-						getHostHeader()
-					)), getPrincipal(), isSecure(), false);
-					if (response.getCode() < 200 || response.getCode() >= 300) {
-						throw new IOException("Could not persist data: " + response.getCode() + " - " + response.getMessage());
+					final byte [] content = IOUtils.toBytes(buffer);
+					
+					Runnable action = new Runnable() {
+						public void run() {
+							try {
+								HTTPResponse response = getClient().execute(new DefaultHTTPRequest("PUT", getRoot() + "resource" + URIUtils.encodeURI(getPath()), new PlainMimeContentPart(null, 
+									IOUtils.wrap(content, true),
+									new MimeHeader("Content-Type", getContentType()),
+									new MimeHeader("Content-Length", Long.toString(content.length)),
+									getHostHeader()
+								)), getPrincipal(), isSecure(), false);
+								if (response.getCode() < 200 || response.getCode() >= 300) {
+									throw new IOException("Could not persist data: " + response.getCode() + " - " + response.getMessage());
+								}
+								else if (getExecutor() == null) {
+									RemoteItem.this.size = (long) content.length;
+									RemoteItem.this.content = content;
+								}
+							}
+							catch (Exception e) {
+								logger.error("Could not persist data for: " + getUri(), e);
+								throw new RuntimeException(e);
+							}
+						}
+					};
+					if (getExecutor() == null) {
+						action.run();
 					}
 					else {
+						// already update locally, assuming everything will (eventually) be persisted
 						RemoteItem.this.size = (long) content.length;
 						RemoteItem.this.content = content;
+						getExecutor().execute(action);
 					}
 				}
 				catch (IOException e) {

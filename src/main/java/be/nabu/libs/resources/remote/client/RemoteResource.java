@@ -9,6 +9,10 @@ import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.security.Principal;
 import java.util.Date;
+import java.util.concurrent.Executor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.api.client.ConnectionHandler;
@@ -21,7 +25,6 @@ import be.nabu.libs.resources.URIUtils;
 import be.nabu.libs.resources.api.LocatableResource;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.libs.resources.api.TimestampedResource;
-import be.nabu.libs.resources.api.principals.BasicPrincipal;
 import be.nabu.libs.resources.remote.server.Listing;
 import be.nabu.libs.types.api.ComplexType;
 import be.nabu.libs.types.binding.api.UnmarshallableBinding;
@@ -41,14 +44,15 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 	private String path;
 	private String host;
 	private int port;
-	private String username;
-	private String password;
 	private RemoteContainer parent;
 	private HTTPClient client;
 	private ConnectionHandler connectionHandler;
 	private String root;
 	private UnmarshallableBinding binding;
 	private boolean isSecure;
+	private Executor executor;
+	Logger logger = LoggerFactory.getLogger(getClass());
+	private Principal principal;
 
 	RemoteResource(RemoteContainer parent, String itemName, String contentType, Date lastModified, String path) {
 		this.parent = parent;
@@ -61,8 +65,9 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 		}
 	}
 	
-	public RemoteResource(ConnectionHandler connectionHandler, String host, Integer port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path) {
+	public RemoteResource(ConnectionHandler connectionHandler, String host, Integer port, String root, Principal principal, String itemName, String contentType, Date lastModified, String path) {
 		this.connectionHandler = connectionHandler;
+		this.principal = principal;
 		this.root = root == null ? "/" : root;
 		if (!this.root.endsWith("/")) {
 			this.root += "/";
@@ -73,8 +78,6 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 		if (port == null) {
 			port = connectionHandler.getSecureContext() == null ? 80 : 443;
 		}
-		this.username = username;
-		this.password = password;
 		this.itemName = itemName;
 		this.contentType = contentType;
 		this.lastModified = lastModified;
@@ -85,7 +88,8 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 		this.isSecure = connectionHandler.getSecureContext() != null;
 	}
 	
-	public RemoteResource(HTTPClient client, String host, Integer port, String root, String username, String password, String itemName, String contentType, Date lastModified, String path, boolean isSecure) {
+	public RemoteResource(HTTPClient client, String host, Integer port, String root, Principal principal, String itemName, String contentType, Date lastModified, String path, boolean isSecure) {
+		this.principal = principal;
 		this.isSecure = isSecure;
 		this.root = root == null ? "/" : root;
 		if (!this.root.endsWith("/")) {
@@ -94,8 +98,6 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 		this.client = client;
 		this.host = host;
 		this.port = port == null ? 80 : port;
-		this.username = username;
-		this.password = password;
 		this.itemName = itemName;
 		this.contentType = contentType;
 		this.lastModified = lastModified;
@@ -125,16 +127,7 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 			return parent.getPrincipal();
 		}
 		else {
-			return username == null ? null : new BasicPrincipal() {
-				@Override
-				public String getName() {
-					return username;
-				}
-				@Override
-				public String getPassword() {
-					return password;
-				}
-			};
+			return principal;
 		}
 	}
 	
@@ -169,13 +162,6 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 		return parent == null ? port : parent.getPort();
 	}
 
-	protected String getUsername() {
-		return parent == null ? username : parent.getUsername();
-	}
-
-	protected String getPassword() {
-		return parent == null ? password : parent.getPassword();
-	}
 
 	protected HTTPClient getClient() {
 		return parent == null ? client : parent.getClient();
@@ -244,4 +230,13 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 		}
 		return false;
 	}
+
+	public Executor getExecutor() {
+		return executor != null ? executor : (parent == null ? null : parent.getExecutor());
+	}
+
+	public void setExecutor(Executor executor) {
+		this.executor = executor;
+	}
+	
 }
