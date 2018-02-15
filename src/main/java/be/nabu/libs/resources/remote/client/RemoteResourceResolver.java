@@ -47,7 +47,7 @@ public class RemoteResourceResolver implements ResourceResolver {
 		boolean full = queryProperties.containsKey("full") ? Boolean.parseBoolean(queryProperties.get("full").get(0)) : Boolean.parseBoolean(System.getProperty("resources.remote.full", "false"));
 		try {
 			RemoteContainer remoteContainer;
-			if (Boolean.parseBoolean(System.getProperty("http.experimental.client", "false"))) {
+			if (Boolean.parseBoolean(System.getProperty("http.experimental.client", "true"))) {
 				remoteContainer = new RemoteContainer(
 					new NIOHTTPClientImpl(uri.getScheme().equals("https") ? SSLContext.getDefault() : null, 5, 3, 10, new EventDispatcherImpl(), new MemoryMessageDataProvider(), new CookieManager(new CustomCookieStore(), CookiePolicy.ACCEPT_NONE), Executors.defaultThreadFactory()),
 					uri.getHost(), uri.getPort(), uri.getPath(), principal, null, Resource.CONTENT_TYPE_DIRECTORY, new Date(), "/", uri.getScheme().equals("https"), recursive, full
