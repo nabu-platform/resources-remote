@@ -11,6 +11,7 @@ import be.nabu.libs.resources.URIUtils;
 import be.nabu.libs.resources.api.FiniteResource;
 import be.nabu.libs.resources.api.ReadableResource;
 import be.nabu.libs.resources.api.WritableResource;
+import be.nabu.libs.resources.api.features.CacheableResource;
 import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.io.api.ByteBuffer;
 import be.nabu.utils.io.api.ReadableContainer;
@@ -21,7 +22,7 @@ import be.nabu.utils.mime.impl.MimeHeader;
 import be.nabu.utils.mime.impl.PlainMimeContentPart;
 import be.nabu.utils.mime.impl.PlainMimeEmptyPart;
 
-public class RemoteItem extends RemoteResource implements ReadableResource, WritableResource, FiniteResource {
+public class RemoteItem extends RemoteResource implements ReadableResource, WritableResource, FiniteResource, CacheableResource {
 
 	private Long size;
 	private byte[] content;
@@ -38,7 +39,7 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 
 	@Override
 	public long getSize() {
-		return size;
+		return size == null ? 0 : size;
 	}
 
 	@Override
@@ -63,7 +64,7 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 								if (response.getCode() < 200 || response.getCode() >= 300) {
 									throw new IOException("Could not persist data: " + response.getCode() + " - " + response.getMessage());
 								}
-								else if (getExecutor() == null) {
+								else {
 									RemoteItem.this.size = (long) content.length;
 									RemoteItem.this.content = content;
 								}
@@ -130,6 +131,22 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 			}
 		}
 		return IOUtils.wrap(content, true);
+	}
+
+	@Override
+	public void resetCache() throws IOException {
+		content = null;
+		size = 0l;
+	}
+
+	@Override
+	public void setCaching(boolean cache) {
+		// do nothing
+	}
+
+	@Override
+	public boolean isCaching() {
+		return true;
 	}
 
 }

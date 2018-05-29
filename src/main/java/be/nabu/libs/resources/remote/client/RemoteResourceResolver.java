@@ -45,11 +45,16 @@ public class RemoteResourceResolver implements ResourceResolver {
 		Map<String, List<String>> queryProperties = URIUtils.getQueryProperties(uri);
 		boolean recursive = queryProperties.containsKey("recursive") ? Boolean.parseBoolean(queryProperties.get("recursive").get(0)) : Boolean.parseBoolean(System.getProperty("resources.remote.recursive", "true"));
 		boolean full = queryProperties.containsKey("full") ? Boolean.parseBoolean(queryProperties.get("full").get(0)) : Boolean.parseBoolean(System.getProperty("resources.remote.full", "false"));
+		List<String> timeout = queryProperties.get("timeout");
 		try {
 			RemoteContainer remoteContainer;
 			if (Boolean.parseBoolean(System.getProperty("http.experimental.client", "true"))) {
+				NIOHTTPClientImpl httpClient = new NIOHTTPClientImpl(uri.getScheme().equals("https") ? SSLContext.getDefault() : null, 5, 3, 10, new EventDispatcherImpl(), new MemoryMessageDataProvider(), new CookieManager(new CustomCookieStore(), CookiePolicy.ACCEPT_NONE), Executors.defaultThreadFactory());
+				if (timeout != null && !timeout.isEmpty()) {
+					httpClient.setRequestTimeout(Long.parseLong(timeout.get(0)));
+				}
 				remoteContainer = new RemoteContainer(
-					new NIOHTTPClientImpl(uri.getScheme().equals("https") ? SSLContext.getDefault() : null, 5, 3, 10, new EventDispatcherImpl(), new MemoryMessageDataProvider(), new CookieManager(new CustomCookieStore(), CookiePolicy.ACCEPT_NONE), Executors.defaultThreadFactory()),
+					httpClient,
 					uri.getHost(), uri.getPort(), uri.getPath(), principal, null, Resource.CONTENT_TYPE_DIRECTORY, new Date(), "/", uri.getScheme().equals("https"), recursive, full
 				);
 			}
