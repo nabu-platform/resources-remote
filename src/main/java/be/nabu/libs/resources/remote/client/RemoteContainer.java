@@ -93,7 +93,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 					}
 				}
 				else {
-					children.put(entry.getName(), new RemoteItem(this, entry.getName(), entry.getContentType(), entry.getLastModified(), entry.getPath(), entry.getSize(), entry.getContent()));
+					children.put(entry.getName(), new RemoteItem(this, entry.getName(), entry.getContentType(), entry.getLastModified(), entry.getPath(), entry.getSize(), entry.getContent(), entry.getHash()));
 				}
 			}
 		}
@@ -133,7 +133,7 @@ public class RemoteContainer extends RemoteResource implements ManageableContain
 				getChildren().put(name, new RemoteContainer(this, name, contentType, new Date(), childPath, recursiveList));
 			}
 			else {
-				getChildren().put(name, new RemoteItem(this, name, contentType, new Date(), childPath, 0l, new byte[0]));
+				getChildren().put(name, new RemoteItem(this, name, contentType, new Date(), childPath, 0l, new byte[0], null));
 			}
 			return getChildren().get(name);
 		}

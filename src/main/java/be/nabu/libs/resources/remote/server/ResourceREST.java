@@ -3,6 +3,7 @@ package be.nabu.libs.resources.remote.server;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
+import java.security.NoSuchAlgorithmException;
 
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -32,6 +33,8 @@ import be.nabu.utils.io.api.WritableContainer;
 import be.nabu.utils.mime.api.Part;
 import be.nabu.utils.mime.impl.MimeHeader;
 import be.nabu.utils.mime.impl.PlainMimeContentPart;
+import be.nabu.utils.security.DigestAlgorithm;
+import be.nabu.utils.security.SecurityUtils;
 
 @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 public class ResourceREST {
@@ -155,7 +158,8 @@ public class ResourceREST {
 		return list("/", recursive, full);
 	}
 	
-	private Long maxPreloadSize = 1024l*1024;
+	// let's do this with a third of a meg since we now have a client side caching mechanism
+	private Long maxPreloadSize = 1024l*1024 / 3;
 	
 	@Path("/list/{path : .*}")
 	@GET
@@ -194,6 +198,21 @@ public class ResourceREST {
 				ReadableContainer<ByteBuffer> readable = ((ReadableResource) child).getReadable();
 				try {
 					entry.setContent(IOUtils.toBytes(readable));
+				}
+				finally {
+					readable.close();
+				}
+			}
+			// if too big to include, add a hash so we can cache it at the other end
+			else if (child instanceof ReadableResource && entry.getSize() != null && entry.getSize() >= maxPreloadSize) {
+				ReadableContainer<ByteBuffer> readable = ((ReadableResource) child).getReadable();
+				try {
+					byte[] digest = SecurityUtils.digest(IOUtils.toInputStream(readable), DigestAlgorithm.MD5);
+					entry.setHash(SecurityUtils.encodeDigest(digest));
+				}
+				catch (NoSuchAlgorithmException e) {
+					// impossible?
+					e.printStackTrace();
 				}
 				finally {
 					readable.close();

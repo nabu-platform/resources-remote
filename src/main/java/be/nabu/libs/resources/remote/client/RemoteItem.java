@@ -1,6 +1,14 @@
 package be.nabu.libs.resources.remote.client;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.Principal;
 import java.util.Date;
 
@@ -26,15 +34,17 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 
 	private Long size;
 	private byte[] content;
+	private String hash;
 
 	public RemoteItem(ConnectionHandler connectionHandler, String host, Integer port, String root, Principal principal, String itemName, String contentType, Date lastModified, String path) {
 		super(connectionHandler, host, port, root, principal, itemName, contentType, lastModified, path);
 	}
 	
-	RemoteItem(RemoteContainer parent, String itemName, String contentType, Date lastModified, String path, Long size, byte [] content) {
+	RemoteItem(RemoteContainer parent, String itemName, String contentType, Date lastModified, String path, Long size, byte [] content, String hash) {
 		super(parent, itemName, contentType, lastModified, path);
 		this.size = size;
 		this.content = content;
+		this.hash = hash;
 	}
 
 	@Override
@@ -67,6 +77,7 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 								else {
 									RemoteItem.this.size = (long) content.length;
 									RemoteItem.this.content = content;
+									cache(content);
 								}
 							}
 							catch (Exception e) {
@@ -83,6 +94,7 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 						RemoteItem.this.size = (long) content.length;
 						RemoteItem.this.content = content;
 						getExecutor().execute(action);
+						cache(content);
 					}
 				}
 				catch (IOException e) {
@@ -106,31 +118,71 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 	@Override
 	public ReadableContainer<ByteBuffer> getReadable() throws IOException {
 		if (content == null) {
-			try {
-				HTTPResponse response = getClient().execute(new DefaultHTTPRequest("GET", getRoot() + "resource" + URIUtils.encodeURI(getPath()), new PlainMimeEmptyPart(null, 
-					new MimeHeader("Content-Length", "0"),
-					new MimeHeader("Accept-Encoding", "gzip"),
-					getHostHeader()
-				)), getPrincipal(), isSecure(), false);
-				if (response.getCode() < 200 || response.getCode() >= 300 || !(response.getContent() instanceof ContentPart)) {
-					throw new IOException("Could not get content: " + response.getCode() + " - " + response.getMessage());
-				}
-				ReadableContainer<ByteBuffer> readable = response == null || response.getContent() == null ? null : ((ContentPart) response.getContent()).getReadable();
-				if (readable == null) {
-					content = new byte[0];
-				}
-				else {
-					content = IOUtils.toBytes(readable);
+			// if we have a cache location and a hash, check if we cached it
+			if (cacheLocation != null && hash != null) {
+				File file = new File(cacheLocation, hash);
+				if (file.exists() && file.isFile()) {
+					InputStream input = new BufferedInputStream(new FileInputStream(file));
+					try {
+						content = IOUtils.toBytes(IOUtils.wrap(input));
+					}
+					finally {
+						input.close();
+					}
 				}
 			}
-			catch (IOException e) {
-				throw e;
-			}
-			catch (Exception e) {
-				throw new RuntimeException(e);
+			if (content == null) {
+				try {
+					HTTPResponse response = getClient().execute(new DefaultHTTPRequest("GET", getRoot() + "resource" + URIUtils.encodeURI(getPath()), new PlainMimeEmptyPart(null, 
+						new MimeHeader("Content-Length", "0"),
+						new MimeHeader("Accept-Encoding", "gzip"),
+						getHostHeader()
+					)), getPrincipal(), isSecure(), false);
+					if (response.getCode() < 200 || response.getCode() >= 300 || !(response.getContent() instanceof ContentPart)) {
+						throw new IOException("Could not get content: " + response.getCode() + " - " + response.getMessage());
+					}
+					ReadableContainer<ByteBuffer> readable = response == null || response.getContent() == null ? null : ((ContentPart) response.getContent()).getReadable();
+					if (readable == null) {
+						content = new byte[0];
+						cache(content);
+					}
+					else {
+						content = IOUtils.toBytes(readable);
+						cache(content);
+					}
+				}
+				catch (IOException e) {
+					throw e;
+				}
+				catch (Exception e) {
+					throw new RuntimeException(e);
+				}
 			}
 		}
 		return IOUtils.wrap(content, true);
+	}
+
+	private void cache(byte [] content) throws FileNotFoundException, IOException {
+		// store it for later reuse
+		if (cacheLocation != null && hash != null) {
+			File cache = new File(cacheLocation);
+			if (!cache.exists()) {
+				cache.mkdirs();
+			}
+			File file = new File(cache, hash);
+			if (content == null || content.length == 0) {
+				file.delete();
+			}
+			else {
+				OutputStream output = new BufferedOutputStream(new FileOutputStream(file));
+				try {
+					output.write(content);
+				}
+				finally {
+					output.close();
+				}
+			}
+		}
 	}
 
 	@Override

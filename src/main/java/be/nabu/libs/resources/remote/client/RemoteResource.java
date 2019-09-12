@@ -53,6 +53,7 @@ public class RemoteResource implements TimestampedResource, Closeable, Locatable
 	private Executor executor;
 	Logger logger = LoggerFactory.getLogger(getClass());
 	private Principal principal;
+	protected String cacheLocation = System.getProperty("resource.rest.cache");
 
 	RemoteResource(RemoteContainer parent, String itemName, String contentType, Date lastModified, String path) {
 		this.parent = parent;

@@ -6,9 +6,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 @XmlRootElement(name = "entry")
-@XmlType(propOrder = { "name", "contentType", "size", "lastModified", "path", "children", "content" })
+@XmlType(propOrder = { "name", "hash", "contentType", "size", "lastModified", "path", "children", "content" })
 public class Entry {
-	private String name, path;
+	private String name, path, hash;
 	private String contentType;
 	private Long size;
 	private Date lastModified;
@@ -56,5 +56,11 @@ public class Entry {
 	}
 	public void setContent(byte[] content) {
 		this.content = content;
+	}
+	public String getHash() {
+		return hash;
+	}
+	public void setHash(String hash) {
+		this.hash = hash;
 	}
 }
