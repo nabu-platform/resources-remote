@@ -204,7 +204,7 @@ public class ResourceREST {
 				}
 			}
 			// if too big to include, add a hash so we can cache it at the other end
-			else if (child instanceof ReadableResource && entry.getSize() != null && entry.getSize() >= maxPreloadSize) {
+			else if ("true".equals(full) && child instanceof ReadableResource && entry.getSize() != null && entry.getSize() >= maxPreloadSize) {
 				ReadableContainer<ByteBuffer> readable = ((ReadableResource) child).getReadable();
 				try {
 					byte[] digest = SecurityUtils.digest(IOUtils.toInputStream(readable), DigestAlgorithm.MD5);
