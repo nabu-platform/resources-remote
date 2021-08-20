@@ -59,7 +59,7 @@ public class ResourceREST {
 	public Part read(@PathParam("path") String path) throws IOException {
 		Resource resolved = ResourceUtils.resolve(root, path);
 		if (resolved == null) {
-			throw new HTTPException(404);
+			throw new HTTPException(404, "Could not find: " + path);
 		}
 		else if (!(resolved instanceof ReadableResource)) {
 			throw new HTTPException(400, "The requested resource is not readable");

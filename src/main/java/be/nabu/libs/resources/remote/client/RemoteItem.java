@@ -139,7 +139,7 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 						getHostHeader()
 					)), getPrincipal(), isSecure(), false);
 					if (response.getCode() < 200 || response.getCode() >= 300 || !(response.getContent() instanceof ContentPart)) {
-						throw new IOException("Could not get content: " + response.getCode() + " - " + response.getMessage());
+						throw new IOException("Could not get content for file '" + getPath() + "': " + response.getCode() + " - " + response.getMessage());
 					}
 					ReadableContainer<ByteBuffer> readable = response == null || response.getContent() == null ? null : ((ContentPart) response.getContent()).getReadable();
 					if (readable == null) {
