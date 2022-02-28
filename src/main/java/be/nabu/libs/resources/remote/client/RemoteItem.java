@@ -55,53 +55,58 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 	@Override
 	public WritableContainer<ByteBuffer> getWritable() throws IOException {
 		return new WritableContainer<ByteBuffer>() {
+			private boolean closed;
 			private ByteBuffer buffer = ByteBufferFactory.getInstance().newInstance();
 			@Override
 			public void close() throws IOException {
-				buffer.close();
-				try {
-					final byte [] content = IOUtils.toBytes(buffer);
-					
-					Runnable action = new Runnable() {
-						public void run() {
-							try {
-								HTTPResponse response = getClient().execute(new DefaultHTTPRequest("PUT", getRoot() + "resource" + URIUtils.encodeURI(getPath()), new PlainMimeContentPart(null, 
-									IOUtils.wrap(content, true),
-									new MimeHeader("Content-Type", getContentType()),
-									new MimeHeader("Content-Length", Long.toString(content.length)),
-									getHostHeader()
-								)), getPrincipal(), isSecure(), false);
-								if (response.getCode() < 200 || response.getCode() >= 300) {
-									throw new IOException("Could not persist data: " + response.getCode() + " - " + response.getMessage());
+				// only close once, otherwise we may have buffer issues
+				// we had a case where two writes happened, one with content then one without
+				if (!closed) {
+					closed = true;
+					buffer.close();
+					try {
+						final byte [] content = IOUtils.toBytes(buffer);
+						Runnable action = new Runnable() {
+							public void run() {
+								try {
+									HTTPResponse response = getClient().execute(new DefaultHTTPRequest("PUT", getRoot() + "resource" + URIUtils.encodeURI(getPath()), new PlainMimeContentPart(null, 
+										IOUtils.wrap(content, true),
+										new MimeHeader("Content-Type", getContentType()),
+										new MimeHeader("Content-Length", Long.toString(content.length)),
+										getHostHeader()
+									)), getPrincipal(), isSecure(), false);
+									if (response.getCode() < 200 || response.getCode() >= 300) {
+										throw new IOException("Could not persist data: " + response.getCode() + " - " + response.getMessage());
+									}
+									else {
+										RemoteItem.this.size = (long) content.length;
+										RemoteItem.this.content = content;
+										cache(content);
+									}
 								}
-								else {
-									RemoteItem.this.size = (long) content.length;
-									RemoteItem.this.content = content;
-									cache(content);
+								catch (Exception e) {
+									logger.error("Could not persist data for: " + getUri(), e);
+									throw new RuntimeException(e);
 								}
 							}
-							catch (Exception e) {
-								logger.error("Could not persist data for: " + getUri(), e);
-								throw new RuntimeException(e);
-							}
+						};
+						if (getExecutor() == null) {
+							action.run();
 						}
-					};
-					if (getExecutor() == null) {
-						action.run();
+						else {
+							// already update locally, assuming everything will (eventually) be persisted
+							RemoteItem.this.size = (long) content.length;
+							RemoteItem.this.content = content;
+							getExecutor().execute(action);
+							cache(content);
+						}
 					}
-					else {
-						// already update locally, assuming everything will (eventually) be persisted
-						RemoteItem.this.size = (long) content.length;
-						RemoteItem.this.content = content;
-						getExecutor().execute(action);
-						cache(content);
+					catch (IOException e) {
+						throw e;
 					}
-				}
-				catch (IOException e) {
-					throw e;
-				}
-				catch (Exception e) {
-					throw new RuntimeException(e);
+					catch (Exception e) {
+						throw new RuntimeException(e);
+					}
 				}
 			}
 			@Override
