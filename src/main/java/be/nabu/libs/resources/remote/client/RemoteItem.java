@@ -18,23 +18,19 @@ import be.nabu.libs.http.core.DefaultHTTPRequest;
 import be.nabu.libs.resources.URIUtils;
 import be.nabu.libs.resources.api.FiniteResource;
 import be.nabu.libs.resources.api.ReadableResource;
-import be.nabu.libs.resources.api.WritableResource;
 import be.nabu.libs.resources.api.features.CacheableResource;
 import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.io.api.ByteBuffer;
 import be.nabu.utils.io.api.ReadableContainer;
-import be.nabu.utils.io.api.WritableContainer;
-import be.nabu.utils.io.buffers.bytes.ByteBufferFactory;
 import be.nabu.utils.mime.api.ContentPart;
 import be.nabu.utils.mime.impl.MimeHeader;
-import be.nabu.utils.mime.impl.PlainMimeContentPart;
 import be.nabu.utils.mime.impl.PlainMimeEmptyPart;
 
-public class RemoteItem extends RemoteResource implements ReadableResource, WritableResource, FiniteResource, CacheableResource {
+public class RemoteItem extends RemoteResource implements ReadableResource, FiniteResource, CacheableResource {
 
-	private Long size;
-	private byte[] content;
-	private String hash;
+	protected Long size;
+	protected byte[] content;
+	protected String hash;
 
 	public RemoteItem(ConnectionHandler connectionHandler, String host, Integer port, String root, Principal principal, String itemName, String contentType, Date lastModified, String path) {
 		super(connectionHandler, host, port, root, principal, itemName, contentType, lastModified, path);
@@ -50,74 +46,6 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 	@Override
 	public long getSize() {
 		return size == null ? 0 : size;
-	}
-
-	@Override
-	public WritableContainer<ByteBuffer> getWritable() throws IOException {
-		return new WritableContainer<ByteBuffer>() {
-			private boolean closed;
-			private ByteBuffer buffer = ByteBufferFactory.getInstance().newInstance();
-			@Override
-			public void close() throws IOException {
-				// only close once, otherwise we may have buffer issues
-				// we had a case where two writes happened, one with content then one without
-				if (!closed) {
-					closed = true;
-					buffer.close();
-					try {
-						final byte [] content = IOUtils.toBytes(buffer);
-						Runnable action = new Runnable() {
-							public void run() {
-								try {
-									HTTPResponse response = getClient().execute(new DefaultHTTPRequest("PUT", getRoot() + "resource" + URIUtils.encodeURI(getPath()), new PlainMimeContentPart(null, 
-										IOUtils.wrap(content, true),
-										new MimeHeader("Content-Type", getContentType()),
-										new MimeHeader("Content-Length", Long.toString(content.length)),
-										getHostHeader()
-									)), getPrincipal(), isSecure(), false);
-									if (response.getCode() < 200 || response.getCode() >= 300) {
-										throw new IOException("Could not persist data: " + response.getCode() + " - " + response.getMessage());
-									}
-									else {
-										RemoteItem.this.size = (long) content.length;
-										RemoteItem.this.content = content;
-										cache(content);
-									}
-								}
-								catch (Exception e) {
-									logger.error("Could not persist data for: " + getUri(), e);
-									throw new RuntimeException(e);
-								}
-							}
-						};
-						if (getExecutor() == null) {
-							action.run();
-						}
-						else {
-							// already update locally, assuming everything will (eventually) be persisted
-							RemoteItem.this.size = (long) content.length;
-							RemoteItem.this.content = content;
-							getExecutor().execute(action);
-							cache(content);
-						}
-					}
-					catch (IOException e) {
-						throw e;
-					}
-					catch (Exception e) {
-						throw new RuntimeException(e);
-					}
-				}
-			}
-			@Override
-			public long write(ByteBuffer buffer) throws IOException {
-				return this.buffer.write(buffer);
-			}
-			@Override
-			public void flush() throws IOException {
-				this.buffer.flush();
-			}
-		};
 	}
 
 	@Override
@@ -167,7 +95,7 @@ public class RemoteItem extends RemoteResource implements ReadableResource, Writ
 		return IOUtils.wrap(content, true);
 	}
 
-	private void cache(byte [] content) throws FileNotFoundException, IOException {
+	protected void cache(byte [] content) throws FileNotFoundException, IOException {
 		// store it for later reuse
 		if (cacheLocation != null && hash != null) {
 			File cache = new File(cacheLocation);

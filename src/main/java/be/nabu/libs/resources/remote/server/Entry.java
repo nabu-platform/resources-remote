@@ -6,7 +6,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 @XmlRootElement(name = "entry")
-@XmlType(propOrder = { "name", "hash", "contentType", "size", "lastModified", "path", "children", "content" })
+@XmlType(propOrder = { "name", "hash", "contentType", "size", "lastModified", "writable", "path", "children", "content" })
 public class Entry {
 	private String name, path, hash;
 	private String contentType;
@@ -14,6 +14,8 @@ public class Entry {
 	private Date lastModified;
 	private Listing children;
 	private byte [] content;
+	// we assume writable because this was historically the default
+	private boolean writable = true;
 
 	public String getName() {
 		return name;
@@ -62,5 +64,11 @@ public class Entry {
 	}
 	public void setHash(String hash) {
 		this.hash = hash;
+	}
+	public boolean isWritable() {
+		return writable;
+	}
+	public void setWritable(boolean writable) {
+		this.writable = writable;
 	}
 }

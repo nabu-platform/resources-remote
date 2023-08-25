@@ -71,7 +71,8 @@ public class ResourceREST {
 		return new PlainMimeContentPart(null, content, 
 			new MimeHeader("Content-Length", new Long(((FiniteResource) resolved).getSize()).toString()),
 			new MimeHeader("Content-Type", resolved.getContentType() == null ? "application/octet-stream" : resolved.getContentType()),
-			new MimeHeader("Content-Disposition", "attachment;filename=" + resolved.getName())
+			new MimeHeader("Content-Disposition", "attachment;filename=" + resolved.getName()),
+			new MimeHeader("Writable", Boolean.toString(resolved instanceof WritableResource))
 		);
 	}
 	
@@ -180,6 +181,7 @@ public class ResourceREST {
 		}
 		Listing listing = new Listing();
 		listing.setPath(path);
+		listing.setManageable(resolved instanceof ManageableContainer);
 		for (Resource child : (ResourceContainer<?>) resolved) {
 			if (child.getName().startsWith(".")) {
 				continue;
@@ -188,6 +190,7 @@ public class ResourceREST {
 			entry.setPath(path + (path.equals("/") ? "" : "/") + child.getName());
 			entry.setContentType(child.getContentType() == null ? "application/octet-stream" : child.getContentType());
 			entry.setName(child.getName());
+			entry.setWritable(child instanceof WritableResource || child instanceof ManageableContainer);
 			if (child instanceof FiniteResource) {
 				entry.setSize(((FiniteResource) child).getSize());
 			}

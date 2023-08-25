@@ -9,6 +9,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "list")
 public class Listing {
 
+	private boolean manageable;
 	private String path;
 	private List<Entry> entries = new ArrayList<Entry>();
 
@@ -27,4 +28,13 @@ public class Listing {
 	public void setPath(String path) {
 		this.path = path;
 	}
+
+	@XmlAttribute
+	public boolean isManageable() {
+		return manageable;
+	}
+	public void setManageable(boolean manageable) {
+		this.manageable = manageable;
+	}
+	
 }
